@@ -1,66 +1,78 @@
+// Định nghĩa type cho danh mục từ dummyjson API
 type DummyCategory = {
-  slug: string
-  name: string
-  url?: string
+  slug: string // Slug của danh mục (ví dụ: 'smartphones')
+  name: string // Tên hiển thị của danh mục
+  url?: string // URL tùy chọn
 }
 
+// Định nghĩa type cho bài viết từ JSONPlaceholder API
 type JsonPlaceholderPost = {
-  id: number
-  title: string
-  body: string
+  id: number // ID của bài viết
+  title: string // Tiêu đề bài viết
+  body: string // Nội dung bài viết
 }
 
+// Hàm chuyển đổi slug thành title case (ví dụ: 'smart-phones' -> 'Smart Phones')
 function titleCaseFromSlug(slug: string) {
   return slug
-    .split(/[\s-]+/g)
-    .filter(Boolean)
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(' ')
+    .split(/[\s-]+/g) // Tách theo khoảng trắng hoặc dấu gạch ngang
+    .filter(Boolean) // Loại bỏ chuỗi rỗng
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1)) // Viết hoa chữ cái đầu
+    .join(' ') // Ghép lại bằng khoảng trắng
 }
 
+// Hàm trả về icon emoji dựa trên slug của danh mục
 function iconForCategorySlug(slug: string) {
-  if (/(phone|smartphone|mobile)/i.test(slug)) return '📱'
-  if (/(laptop|computer|pc)/i.test(slug)) return '💻'
-  if (/(beauty|skin|fragrance)/i.test(slug)) return '🧴'
-  if (/(furniture|home|kitchen)/i.test(slug)) return '🏠'
-  if (/(grocer|food)/i.test(slug)) return '🛒'
-  if (/(sports)/i.test(slug)) return '🏅'
-  return '🏷️'
+  if (/(phone|smartphone|mobile)/i.test(slug)) return '📱' // Điện thoại
+  if (/(laptop|computer|pc)/i.test(slug)) return '💻' // Máy tính
+  if (/(beauty|skin|fragrance)/i.test(slug)) return '🧴' // Mỹ phẩm
+  if (/(furniture|home|kitchen)/i.test(slug)) return '🏠' // Nội thất
+  if (/(grocer|food)/i.test(slug)) return '🛒' // Thực phẩm
+  if (/(sports)/i.test(slug)) return '🏅' // Thể thao
+  return '🏷️' // Mặc định
 }
 
+// Hàm rút gọn văn bản nếu vượt quá số ký tự cho phép
 function truncate(text: string, maxChars: number) {
-  const t = text.trim().replace(/\s+/g, ' ')
-  if (t.length <= maxChars) return t
-  return `${t.slice(0, maxChars).trim()}…`
+  const t = text.trim().replace(/\s+/g, ' ') // Loại bỏ khoảng trắng thừa
+  if (t.length <= maxChars) return t // Nếu không vượt quá, trả về nguyên
+  return `${t.slice(0, maxChars).trim()}…` // Rút gọn và thêm dấu "..."
 }
 
+// Hàm async lấy danh sách danh mục từ API dummyjson
 async function getCategories(): Promise<DummyCategory[]> {
-  const res = await fetch('https://dummyjson.com/products/categories', { cache: 'no-store' })
-  if (!res.ok) return []
-  const data = (await res.json()) as Array<{ slug: string; name: string; url?: string }>
-  return data.slice(0, 8)
+  const res = await fetch('https://dummyjson.com/products/categories', { cache: 'no-store' }) // Fetch không cache
+  if (!res.ok) return [] // Nếu lỗi, trả về mảng rỗng
+  const data = (await res.json()) as Array<{ slug: string; name: string; url?: string }> // Parse JSON
+  return data.slice(0, 8) // Lấy 8 danh mục đầu tiên
 }
 
+// Hàm async lấy danh sách bài viết từ JSONPlaceholder
 async function getPosts(): Promise<JsonPlaceholderPost[]> {
-  const res = await fetch('https://jsonplaceholder.typicode.com/posts?_limit=3', { cache: 'no-store' })
-  if (!res.ok) return []
-  return (await res.json()) as JsonPlaceholderPost[]
+  const res = await fetch('https://jsonplaceholder.typicode.com/posts?_limit=3', { cache: 'no-store' }) // Lấy 3 bài viết
+  if (!res.ok) return [] // Nếu lỗi, trả về mảng rỗng
+  return (await res.json()) as JsonPlaceholderPost[] // Parse và trả về
 }
 
+// Component chính của trang Home (server-side rendered)
 export default async function Home() {
+  // Chờ cả hai API call hoàn thành
   const [categories, posts] = await Promise.all([getCategories(), getPosts()])
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Hero */}
+      {/* Phần Hero - Giới thiệu chính */}
       <section className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 text-white">
         <div className="absolute inset-0 opacity-20">
+          {/* Hiệu ứng nền mờ */}
           <div className="absolute -top-20 -left-20 h-80 w-80 rounded-full bg-white blur-3xl" />
           <div className="absolute -bottom-24 -right-24 h-96 w-96 rounded-full bg-white blur-3xl" />
         </div>
 
         <div className="relative max-w-7xl mx-auto px-4 py-16 md:py-20">
+          {/* Grid layout cho hero */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+            {/* Nội dung bên trái */}
             <div>
               <p className="inline-flex items-center rounded-full bg-white/10 px-4 py-1 text-sm font-semibold">
                 Nền tảng học online hiện đại
@@ -73,6 +85,7 @@ export default async function Home() {
                 Khám phá danh mục khóa học đa dạng, học theo lộ trình và theo dõi tiến độ rõ ràng.
               </p>
 
+              {/* Nút hành động */}
               <div className="mt-8 flex flex-col sm:flex-row gap-3">
                 <a
                   href="/courses"
@@ -88,6 +101,7 @@ export default async function Home() {
                 </a>
               </div>
 
+              {/* Thống kê */}
               <div className="mt-8 grid grid-cols-3 gap-4 max-w-md">
                 <div className="rounded-2xl bg-white/10 p-4">
                   <p className="text-2xl font-bold">9+</p>
@@ -104,6 +118,7 @@ export default async function Home() {
               </div>
             </div>
 
+            {/* Card gợi ý bên phải */}
             <div className="lg:justify-self-end">
               <div className="rounded-3xl border border-white/20 bg-white/10 p-6 shadow-xl">
                 <div className="flex items-center justify-between">
@@ -111,6 +126,7 @@ export default async function Home() {
                   <span className="text-xs rounded-full bg-white/15 px-3 py-1">Updated</span>
                 </div>
                 <div className="mt-4 grid gap-3">
+                  {/* Danh sách gợi ý khóa học */}
                   {[
                     { title: 'Lập trình Web', desc: 'HTML • CSS • JS', icon: '🌐' },
                     { title: 'React', desc: 'Hooks • Router • State', icon: '⚛️' },
@@ -139,7 +155,7 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Categories */}
+      {/* Phần Categories - Danh mục khóa học */}
       <section className="max-w-7xl mx-auto px-4 py-10 md:py-12">
         <div className="flex items-end justify-between gap-4">
           <div>
@@ -152,6 +168,7 @@ export default async function Home() {
         </div>
 
         <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          {/* Render danh mục nếu có */}
           {categories.length > 0 ? (
             categories.map((c) => (
               <a
@@ -161,7 +178,7 @@ export default async function Home() {
               >
                 <div className="flex items-center justify-between">
                   <div className="h-10 w-10 rounded-2xl bg-gray-100 flex items-center justify-center text-lg group-hover:bg-blue-50 transition-colors">
-                    {iconForCategorySlug(c.slug)}
+                    {iconForCategorySlug(c.slug)} {/* Icon dựa trên slug */}
                   </div>
                   <span className="text-gray-300 group-hover:text-blue-300 transition-colors">→</span>
                 </div>
@@ -170,6 +187,7 @@ export default async function Home() {
               </a>
             ))
           ) : (
+            /* Fallback nếu không load được categories */
             <div className="col-span-full rounded-2xl border border-gray-200 bg-white p-6 text-gray-600">
               Không tải được danh mục. Bạn vẫn có thể xem danh sách ở trang Khóa học.
             </div>
@@ -177,7 +195,7 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Posts */}
+      {/* Phần Posts - Bài viết mới */}
       <section className="max-w-7xl mx-auto px-4 pb-14">
         <div className="flex items-end justify-between gap-4">
           <div>
@@ -190,6 +208,7 @@ export default async function Home() {
         </div>
 
         <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Render bài viết nếu có */}
           {posts.length > 0 ? (
             posts.map((p) => (
               <article key={p.id} className="rounded-2xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow overflow-hidden">
@@ -203,10 +222,10 @@ export default async function Home() {
                 <div className="p-5">
                   <p className="text-xs font-semibold text-gray-500">Bài viết</p>
                   <h3 className="mt-2 text-lg font-bold text-gray-900 line-clamp-2">
-                    {titleCaseFromSlug(p.title)}
+                    {titleCaseFromSlug(p.title)} {/* Chuyển title thành title case */}
                   </h3>
                   <p className="mt-2 text-sm text-gray-600 line-clamp-3">
-                    {truncate(p.body, 140)}
+                    {truncate(p.body, 140)} {/* Rút gọn nội dung */}
                   </p>
                   <div className="mt-4 flex items-center justify-between">
                     <span className="text-xs text-gray-500">5 phút đọc</span>
@@ -218,6 +237,7 @@ export default async function Home() {
               </article>
             ))
           ) : (
+            /* Fallback nếu không load được posts */
             <div className="col-span-full rounded-2xl border border-gray-200 bg-white p-6 text-gray-600">
               Không tải được bài viết.
             </div>
@@ -225,7 +245,7 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Bottom CTA */}
+      {/* Phần Bottom CTA - Call to Action cuối trang */}
       <section className="max-w-7xl mx-auto px-4 pb-16">
         <div className="rounded-3xl bg-gray-900 text-white p-8 md:p-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div>
