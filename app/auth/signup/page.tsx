@@ -54,7 +54,7 @@ export default function SignupPage() {
     if (success) {
       router.push('/courses')
     } else {
-      setError('Đăng ký thất bại. Vui lòng thử lại.')
+      setError('Email đã tồn tại hoặc đăng ký thất bại.')
     }
   }
 

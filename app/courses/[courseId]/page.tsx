@@ -5,7 +5,10 @@ import { use, useEffect, useMemo, useState } from 'react'
 import type { Course } from '@/types/course'
 import type { Lesson } from '@/types/lesson'
 import { fetchCourseById, fetchLessonsForCourse } from '@/utils/mockCourseData'
-import { getCourseProgress, setLessonStatus } from '@/utils/progressStorage'
+import { getUserCourseProgress, setUserLessonStatus } from '@/utils/progressStorage'
+import { enrollCourse, isCourseEnrolled } from '@/utils/enrollmentsStorage'
+import { useAuth } from '@/contexts/AuthContext'
+import { useRouter } from 'next/navigation'
 
 function statusBadge(status: Lesson['status']) {
   if (status === 'completed') return 'bg-green-50 text-green-700 border-green-200'
@@ -20,19 +23,22 @@ function statusLabel(status: Lesson['status']) {
 }
 
 export default function CourseDetailPage({ params }: { params: Promise<{ courseId: string }> }) {
+  const { user } = useAuth()
+  const router = useRouter()
   const { courseId: courseIdParam } = use(params)
   const courseId = Number(courseIdParam)
   const [course, setCourse] = useState<Course | null>(null)
   const [lessons, setLessons] = useState<Lesson[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [enrolled, setEnrolled] = useState(false)
 
   useEffect(() => {
     let cancelled = false
     setLoading(true)
     setError(null)
 
-    Promise.all([fetchCourseById(courseId), fetchLessonsForCourse(courseId)])
+    Promise.all([fetchCourseById(courseId), fetchLessonsForCourse(courseId, user?.id)])
       .then(([c, ls]) => {
         if (cancelled) return
         setCourse(c)
@@ -50,10 +56,21 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
     return () => {
       cancelled = true
     }
-  }, [courseId])
+  }, [courseId, user?.id])
+
+  useEffect(() => {
+    if (!user || Number.isNaN(courseId)) {
+      setEnrolled(false)
+      return
+    }
+    setEnrolled(isCourseEnrolled(user.id, courseId))
+  }, [user, courseId])
 
   const lessonIds = useMemo(() => lessons.map((l) => l.id), [lessons])
-  const progress = useMemo(() => getCourseProgress(courseId, lessonIds), [courseId, lessonIds])
+  const progress = useMemo(() => {
+    if (!user) return { completed: 0, total: lessonIds.length, percent: 0 }
+    return getUserCourseProgress(user.id, courseId, lessonIds)
+  }, [user, courseId, lessonIds])
 
   if (Number.isNaN(courseId)) {
     return (
@@ -115,6 +132,34 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                     {course.description}
                   </p>
 
+                  <div className="mt-5 flex flex-col sm:flex-row gap-3">
+                    <button
+                      type="button"
+                      disabled={enrolled}
+                      onClick={() => {
+                        if (!user) {
+                          router.push('/auth/login')
+                          return
+                        }
+                        if (enrolled) return
+                        enrollCourse(user.id, courseId)
+                        setEnrolled(true)
+                        router.push('/my-courses')
+                      }}
+                      className="h-11 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-50 disabled:hover:bg-blue-600"
+                    >
+                      {enrolled ? 'Đã đăng ký' : 'Đăng ký khóa học'}
+                    </button>
+                    {user ? (
+                      <Link
+                        href="/my-courses"
+                        className="h-11 inline-flex items-center justify-center rounded-xl border border-gray-200 bg-white px-5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                      >
+                        Xem khóa học của tôi
+                      </Link>
+                    ) : null}
+                  </div>
+
                   <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-4">
                     <div className="flex items-center justify-between">
                       <p className="text-sm font-semibold text-gray-900">Tiến độ</p>
@@ -170,20 +215,6 @@ export default function CourseDetailPage({ params }: { params: Promise<{ courseI
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setLessonStatus(courseId, lesson.id, 'completed')
-                          setLessons((prev) =>
-                            prev.map((l) => (l.id === lesson.id ? { ...l, status: 'completed' } : l)),
-                          )
-                        }}
-                        className="h-11 min-w-[44px] rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 hover:bg-gray-50"
-                      >
-                        Đánh dấu hoàn thành
-                      </button>
-                    </div>
                   </div>
 
                   {lesson.videoThumbnail ? (

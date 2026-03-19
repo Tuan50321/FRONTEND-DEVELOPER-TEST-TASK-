@@ -47,6 +47,7 @@ export default function CoursesPage() {
   useEffect(() => {
     const categoryFromUrl = searchParams.get('category');
     const pageFromUrl = Number(searchParams.get('page') || '1');
+    const qFromUrl = searchParams.get('q') || '';
     if (categoryFromUrl && categoryFromUrl !== selectedCategory) {
       setSelectedCategory(categoryFromUrl);
     }
@@ -55,6 +56,9 @@ export default function CoursesPage() {
     }
     if (!Number.isNaN(pageFromUrl) && pageFromUrl >= 1 && pageFromUrl !== page) {
       setPage(pageFromUrl);
+    }
+    if (qFromUrl !== search) {
+      setSearch(qFromUrl);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
@@ -140,16 +144,20 @@ export default function CoursesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, levelFilter, selectedCategory]);
 
-  const updateUrl = (next: { category?: string; page?: number }) => {
+  const updateUrl = (next: { category?: string; page?: number; q?: string }) => {
     const params = new URLSearchParams(searchParams.toString());
     const nextCategory = next.category ?? selectedCategory;
     const nextPage = next.page ?? page;
+    const nextQ = next.q ?? search;
 
     if (nextCategory === 'all') params.delete('category');
     else params.set('category', nextCategory);
 
     if (nextPage <= 1) params.delete('page');
     else params.set('page', String(nextPage));
+
+    if (!nextQ.trim()) params.delete('q');
+    else params.set('q', nextQ);
 
     const qs = params.toString();
     router.replace(qs ? `/courses?${qs}#categories` : '/courses#categories');
@@ -198,6 +206,7 @@ export default function CoursesPage() {
                   <input
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
+                    onBlur={() => updateUrl({ q: search, page: 1 })}
                     placeholder="Tìm kiếm theo tên khóa học..."
                     className="ml-3 w-full bg-transparent text-sm text-gray-700 outline-none"
                   />

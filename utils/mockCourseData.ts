@@ -1,6 +1,6 @@
 import type { Course } from '@/types/course'
 import type { Lesson, LessonStatus } from '@/types/lesson'
-import { getLessonStatus } from '@/utils/progressStorage'
+import { getUserLessonStatus } from '@/utils/progressStorage'
 
 type JsonPlaceholderPost = {
   userId: number
@@ -85,7 +85,7 @@ export async function fetchCourseById(courseId: number) {
   return mapPostToCourse(post)
 }
 
-export async function fetchLessonsForCourse(courseId: number): Promise<Lesson[]> {
+export async function fetchLessonsForCourse(courseId: number, userId?: number): Promise<Lesson[]> {
   const course = await fetchCourseById(courseId)
   const res = await fetch(`https://jsonplaceholder.typicode.com/posts/${courseId}/comments`, { cache: 'no-store' })
   if (!res.ok) throw new Error(`JSONPlaceholder request failed: ${res.status}`)
@@ -95,7 +95,8 @@ export async function fetchLessonsForCourse(courseId: number): Promise<Lesson[]>
   for (let i = 1; i <= course.lessons; i++) {
     const c = comments[i - 1]
     const id = String(i)
-    const status: LessonStatus = getLessonStatus(courseId, id)
+    const status: LessonStatus =
+      typeof userId === 'number' ? getUserLessonStatus(userId, courseId, id) : 'not-started'
     lessons.push({
       id,
       courseId,

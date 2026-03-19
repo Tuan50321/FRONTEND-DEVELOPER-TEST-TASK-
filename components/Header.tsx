@@ -8,8 +8,18 @@ export default function Header() {
   const { user, logout } = useAuth()
   const router = useRouter()
   const [mounted, setMounted] = useState(false)
+  const [query, setQuery] = useState('')
 
   useEffect(() => setMounted(true), [])
+
+  const goSearch = () => {
+    const q = query.trim()
+    if (!q) {
+      router.push('/courses')
+      return
+    }
+    router.push(`/courses?q=${encodeURIComponent(q)}`)
+  }
 
   return (
     <header className="bg-white shadow-sm">
@@ -41,8 +51,20 @@ export default function Header() {
           <input
             type="text"
             placeholder="Tìm khóa học, kỹ năng..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') goSearch()
+            }}
             className="ml-3 w-full bg-transparent text-sm text-gray-700 outline-none"
           />
+          <button
+            type="button"
+            onClick={goSearch}
+            className="ml-2 rounded-full bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700"
+          >
+            Tìm
+          </button>
         </div>
 
         {/* Navigation */}
@@ -50,6 +72,11 @@ export default function Header() {
           <a href="/courses" className="hover:text-blue-600">
             Khóa học
           </a>
+          {mounted && user ? (
+            <a href="/my-courses" className="hover:text-blue-600">
+              Khóa học của tôi
+            </a>
+          ) : null}
         </nav>
 
         {/* Profile / Auth */}

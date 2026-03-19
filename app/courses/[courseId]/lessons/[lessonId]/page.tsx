@@ -4,13 +4,18 @@ import Link from 'next/link'
 import { use, useEffect, useMemo, useState } from 'react'
 import type { Lesson } from '@/types/lesson'
 import { fetchCourseById, fetchLessonsForCourse } from '@/utils/mockCourseData'
-import { setLessonStatus } from '@/utils/progressStorage'
+import { setUserLessonStatus } from '@/utils/progressStorage'
+import { useAuth } from '@/contexts/AuthContext'
+import { useRouter } from 'next/navigation'
+import { isCourseEnrolled } from '@/utils/enrollmentsStorage'
 
 export default function LessonDetailPage({
   params,
 }: {
   params: Promise<{ courseId: string; lessonId: string }>
 }) {
+  const { user } = useAuth()
+  const router = useRouter()
   const { courseId: courseIdParam, lessonId } = use(params)
   const courseId = Number(courseIdParam)
 
@@ -18,13 +23,15 @@ export default function LessonDetailPage({
   const [lesson, setLesson] = useState<Lesson | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [secondsLeft, setSecondsLeft] = useState<number | null>(null)
+  const [autoCompleted, setAutoCompleted] = useState(false)
 
   useEffect(() => {
     let cancelled = false
     setLoading(true)
     setError(null)
 
-    Promise.all([fetchCourseById(courseId), fetchLessonsForCourse(courseId)])
+    Promise.all([fetchCourseById(courseId), fetchLessonsForCourse(courseId, user?.id)])
       .then(([course, lessons]) => {
         if (cancelled) return
         setCourseTitle(course.title)
@@ -43,7 +50,46 @@ export default function LessonDetailPage({
     return () => {
       cancelled = true
     }
-  }, [courseId, lessonId])
+  }, [courseId, lessonId, user?.id])
+
+  useEffect(() => {
+    if (!lesson) return
+    if (!user) {
+      setSecondsLeft(null)
+      return
+    }
+    if (!isCourseEnrolled(user.id, courseId)) {
+      setSecondsLeft(null)
+      return
+    }
+    if (lesson.status === 'completed') {
+      setSecondsLeft(null)
+      setAutoCompleted(false)
+      return
+    }
+
+    setAutoCompleted(false)
+    setSecondsLeft(15)
+
+    const interval = window.setInterval(() => {
+      setSecondsLeft((prev) => {
+        if (prev === null) return prev
+        return prev <= 1 ? 0 : prev - 1
+      })
+    }, 1000)
+
+    const timeout = window.setTimeout(() => {
+      setUserLessonStatus(user.id, courseId, lesson.id, 'completed')
+      setLesson((prev) => (prev ? { ...prev, status: 'completed' } : prev))
+      setAutoCompleted(true)
+      setSecondsLeft(null)
+    }, 15000)
+
+    return () => {
+      window.clearInterval(interval)
+      window.clearTimeout(timeout)
+    }
+  }, [lesson, user, courseId])
 
   const title = useMemo(() => {
     if (!lesson) return ''
@@ -99,6 +145,16 @@ export default function LessonDetailPage({
                 <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-xs font-semibold text-gray-700">
                   {lesson.status}
                 </span>
+                {secondsLeft !== null ? (
+                  <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">
+                    Tự hoàn thành sau {secondsLeft}s
+                  </span>
+                ) : null}
+                {autoCompleted ? (
+                  <span className="inline-flex items-center rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-xs font-semibold text-green-700">
+                    Đã tự động hoàn thành
+                  </span>
+                ) : null}
               </div>
             </div>
 
@@ -116,12 +172,21 @@ export default function LessonDetailPage({
                 <button
                   type="button"
                   onClick={() => {
-                    setLessonStatus(courseId, lesson.id, 'completed')
+                    if (!user) {
+                      router.push('/auth/login')
+                      return
+                    }
+                    if (!isCourseEnrolled(user.id, courseId)) {
+                      router.push(`/courses/${courseId}`)
+                      return
+                    }
+                    setUserLessonStatus(user.id, courseId, lesson.id, 'completed')
                     setLesson((prev) => (prev ? { ...prev, status: 'completed' } : prev))
                   }}
-                  className="h-11 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
+                  disabled={secondsLeft !== null}
+                  className="h-11 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-50 disabled:hover:bg-blue-600"
                 >
-                  Đánh dấu hoàn thành
+                  {secondsLeft !== null ? 'Đang học...' : 'Đánh dấu hoàn thành'}
                 </button>
 
                 <Link
