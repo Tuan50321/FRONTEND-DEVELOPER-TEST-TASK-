@@ -18,9 +18,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="vi"> {/* Ngôn ngữ tiếng Việt */}
+    <html lang="vi">
       <body>
-        {/* Bao bọc toàn bộ app với AuthProvider để cung cấp context auth */}
         <AuthProvider>
           <div className="min-h-screen flex flex-col"> {/* Layout flex column, min height full screen */}
             
@@ -48,7 +47,7 @@ export default function RootLayout({
                   </div>
                   {/* Cột 2: Khóa học */}
                   <div>
-                    <h3 className="font-semibold mb-4">Khóa học</h3>
+                     <h3 className="font-semibold mb-4">Khóa học</h3>
                     <ul className="space-y-2 text-sm text-gray-400">
                       <li><a href="#" className="hover:text-white">Development</a></li>
                       <li><a href="#" className="hover:text-white">Business</a></li>
@@ -83,7 +82,6 @@ export default function RootLayout({
 
           </div>
         </AuthProvider>
-      </body>
-    </html>
+      </body></html>
   )
 }
